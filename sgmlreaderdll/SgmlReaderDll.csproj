@@ -118,21 +118,18 @@
     <Compile Include="Parser\Entity.cs" />
     <Compile Include="Parser\Enums\LiteralType.cs" />
     <Compile Include="Parser\Enums\GroupType.cs" />
-    <Compile Include="Parser\Extensions\Extensions.cs" />
+    <Compile Include="Extensions\Extensions.cs" />
     <Compile Include="Parser\Group.cs" />
     <Compile Include="Parser\HtmlStream.cs" />
     <Compile Include="Parser\Enums\Occurrence.cs" />
     <Compile Include="Parser\SgmlDtd.cs" />
     <Compile Include="Parser\SgmlParseException.cs" />
-    <Compile Include="Parser\StringUtilities.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Parser\Ucs4\Ucs4Decoder.cs" />
     <Compile Include="Parser\Ucs4\Ucs4DecoderBigEngian.cs" />
     <Compile Include="Parser\Ucs4\Ucs4DecoderLittleEndian.cs" />
     <Compile Include="Reader\Attribute.cs" />
     <Compile Include="Reader\Enums\CaseFolding.cs" />
-    <Compile Include="Reader\HWStack.cs" />
+    <Compile Include="Reader\HwStack.cs" />
     <Compile Include="Reader\Node.cs" />
     <Compile Include="Reader\SgmlReader.cs">
       <SubType>Code</SubType>

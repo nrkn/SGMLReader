@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
+using SgmlReaderDll.Extensions;
 using SgmlReaderDll.Parser.Enums;
 
 namespace SgmlReaderDll.Parser {
@@ -39,7 +40,7 @@ namespace SgmlReaderDll.Parser {
       PublicId = pubid;
       Uri = uri;
       Proxy = proxy;
-      _isHtml = ( name != null && StringUtilities.EqualsIgnoreCase( name, "html" ) );
+      _isHtml = ( name != null && name.EqualsIgnoreCase( "html" ) );
     }
 
     /// <summary>
@@ -249,7 +250,7 @@ namespace SgmlReaderDll.Parser {
               mimeType = contentType.Substring( 0, i );
             }
 
-            if( StringUtilities.EqualsIgnoreCase( mimeType, "text/html" ) ) {
+            if( mimeType.EqualsIgnoreCase( "text/html" ) ) {
               _isHtml = true;
             }
 

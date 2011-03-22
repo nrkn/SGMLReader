@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Xml;
+using SgmlReaderDll.Extensions;
 using SgmlReaderDll.Parser;
 using SgmlReaderDll.Reader.Enums;
 
@@ -21,28 +22,29 @@ namespace SgmlReaderDll.Reader {
     internal ElementDecl DtdType; // the DTD type found via validation
     internal State CurrentState;
     internal bool Simulated; // tag was injected into result stream.
-    HWStack attributes = new HWStack(10);
+    readonly HwStack _attributes = new HwStack(10);
 
     /// <summary>
     /// Attribute objects are reused during parsing to reduce memory allocations, 
     /// hence the Reset method. 
     /// </summary>
     public void Reset(string name, XmlNodeType nt, string value) {           
-      this.Value = value;
-      this.Name = name;
-      this.NodeType = nt;
-      this.Space = XmlSpace.None;
-      this.XmlLang= null;
-      this.IsEmpty = true;
-      this.attributes.Count = 0;
-      this.DtdType = null;
+      Value = value;
+      Name = name;
+      NodeType = nt;
+      Space = XmlSpace.None;
+      XmlLang= null;
+      IsEmpty = true;
+      _attributes.Count = 0;
+      DtdType = null;
     }
 
     public Attribute AddAttribute(string name, string value, char quotechar, bool caseInsensitive) {
       Attribute a;
       // check for duplicates!
-      for (int i = 0, n = this.attributes.Count; i < n; i++) {
-        a = (Attribute)this.attributes[i];
+      var n = _attributes.Count;
+      for (var i = 0; i < n; i++) {
+        a = (Attribute) _attributes[i];
         if (string.Equals(a.Name, name, caseInsensitive ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
         {
           return null;
@@ -50,46 +52,46 @@ namespace SgmlReaderDll.Reader {
       }
       // This code makes use of the high water mark for attribute objects,
       // and reuses exisint Attribute objects to avoid memory allocation.
-      a = (Attribute)this.attributes.Push();
+      a = (Attribute) _attributes.Push();
       if (a == null) {
         a = new Attribute();
-        this.attributes[this.attributes.Count-1] = a;
+        _attributes[ _attributes.Count-1 ] = a;
       }
       a.Reset(name, value, quotechar);
       return a;
     }
 
     [SuppressMessage("Microsoft.Performance", "CA1811", Justification = "Kept for potential future usage.")]
-    public void RemoveAttribute(string name)
-    {
-      for (int i = 0, n = this.attributes.Count; i < n; i++)
+    public void RemoveAttribute(string name) {
+      var n = _attributes.Count;
+      for (var i = 0; i < n; i++)
       {
-        Attribute a  = (Attribute)this.attributes[i];
-        if (string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase))
-        {
-          this.attributes.RemoveAt(i);
-          return;
-        }
+        var a  = (Attribute) _attributes[i];
+        if( !a.Name.EqualsIgnoreCase( name ) ) continue;
+        _attributes.RemoveAt(i);
+        return;
       }
     }
     public void CopyAttributes(Node n) {
-      for (int i = 0, len = n.attributes.Count; i < len; i++) {
-        Attribute a = (Attribute)n.attributes[i];
-        Attribute na = this.AddAttribute(a.Name, a.Value, a.QuoteChar, false);
+      var len = n._attributes.Count;
+      for (var i = 0; i < len; i++) {
+        var a = (Attribute)n._attributes[i];
+        var na = AddAttribute(a.Name, a.Value, a.QuoteChar, false);
         na.DtdType = a.DtdType;
       }
     }
 
     public int AttributeCount {
       get {
-        return this.attributes.Count;
+        return _attributes.Count;
       }
     }
 
     public int GetAttribute(string name) {
-      for (int i = 0, n = this.attributes.Count; i < n; i++) {
-        Attribute a = (Attribute)this.attributes[i];
-        if (string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase)) {
+      var n = _attributes.Count;
+      for (var i = 0; i < n; i++) {
+        var a = (Attribute) _attributes[i];
+        if( a.Name.EqualsIgnoreCase( name ) ) {
           return i;
         }
       }
@@ -97,8 +99,8 @@ namespace SgmlReaderDll.Reader {
     }
 
     public Attribute GetAttribute(int i) {
-      if (i>=0 && i<this.attributes.Count) {
-        Attribute a = (Attribute)this.attributes[i];
+      if (i>=0 && i<_attributes.Count) {
+        var a = (Attribute) _attributes[i];
         return a;
       }
       return null;

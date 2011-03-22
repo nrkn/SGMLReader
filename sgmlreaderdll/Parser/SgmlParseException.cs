@@ -9,7 +9,7 @@ namespace SgmlReaderDll.Parser {
   [Serializable]
   public class SgmlParseException : Exception
   {
-    private string m_entityContext;
+    private readonly string _entityContext;
 
     /// <summary>
     /// Instantiates a new instance of SgmlParseException with no specific error information.
@@ -36,7 +36,7 @@ namespace SgmlReaderDll.Parser {
       : base(message)
     {
       if (e != null)
-        m_entityContext = e.Context();
+        _entityContext = e.Context();
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ namespace SgmlReaderDll.Parser {
       : base(streamInfo, streamCtx)
     {
       if (streamInfo != null)
-        m_entityContext = streamInfo.GetString("entityContext");
+        _entityContext = streamInfo.GetString("entityContext");
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ namespace SgmlReaderDll.Parser {
     {
       get
       {
-        return m_entityContext;
+        return _entityContext;
       }
     }
 
@@ -83,7 +83,7 @@ namespace SgmlReaderDll.Parser {
       if (info == null)
         throw new ArgumentNullException("info");
 
-      info.AddValue("entityContext", m_entityContext);
+      info.AddValue("entityContext", _entityContext);
       base.GetObjectData(info, context);
     }
   }

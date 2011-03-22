@@ -8,20 +8,19 @@ namespace SgmlReaderDll.Reader {
   /// used to maintain current state of the parser for element stack, and attributes
   /// in each element.
   /// </summary>
-  internal class HWStack
+  internal class HwStack
   {
-    private object[] m_items;
-    private int m_size;
-    private int m_count;
-    private int m_growth;
+    private object[] _items;
+    private int _count;
+    private readonly int _growth;
 
     /// <summary>
     /// Initialises a new instance of the HWStack class.
     /// </summary>
     /// <param name="growth">The amount to grow the stack space by, if more space is needed on the stack.</param>
-    public HWStack(int growth)
+    public HwStack(int growth)
     {
-      this.m_growth = growth;
+      _growth = growth;
     }
 
     /// <summary>
@@ -31,11 +30,11 @@ namespace SgmlReaderDll.Reader {
     {
       get
       {
-        return this.m_count;
+        return _count;
       }
       set
       {
-        this.m_count = value;
+        _count = value;
       }
     }
 
@@ -43,13 +42,7 @@ namespace SgmlReaderDll.Reader {
     /// The size (capacity) of the stack.
     /// </summary>
     [SuppressMessage("Microsoft.Performance", "CA1811", Justification = "Kept for potential future usage.")]
-    public int Size
-    {
-      get
-      {
-        return this.m_size;
-      }
-    }
+    public int Size { get; private set; }
 
     /// <summary>
     /// Returns the item at the requested index or null if index is out of bounds
@@ -60,11 +53,11 @@ namespace SgmlReaderDll.Reader {
     {
       get
       {
-        return (i >= 0 && i < this.m_size) ? m_items[i] : null;
+        return (i >= 0 && i < Size) ? _items[i] : null;
       }
       set
       {
-        this.m_items[i] = value;
+        _items[i] = value;
       }
     }
 
@@ -74,13 +67,8 @@ namespace SgmlReaderDll.Reader {
     /// <returns>The item at the top of the stack.</returns>
     public object Pop()
     {
-      this.m_count--;
-      if (this.m_count > 0)
-      {
-        return m_items[this.m_count - 1];
-      }
-
-      return null;
+      _count--;
+      return _count > 0 ? _items[_count - 1] : null;
     }
 
     /// <summary>
@@ -93,17 +81,17 @@ namespace SgmlReaderDll.Reader {
     /// </remarks>
     public object Push()
     {
-      if (this.m_count == this.m_size)
+      if (_count == Size)
       {
-        int newsize = this.m_size + this.m_growth;
-        object[] newarray = new object[newsize];
-        if (this.m_items != null)
-          Array.Copy(this.m_items, newarray, this.m_size);
+        var newsize = Size + _growth;
+        var newarray = new object[newsize];
+        if (_items != null)
+          Array.Copy(_items, newarray, Size);
 
-        this.m_size = newsize;
-        this.m_items = newarray;
+        Size = newsize;
+        _items = newarray;
       }
-      return m_items[this.m_count++];
+      return _items[_count++];
     }
 
     /// <summary>
@@ -113,9 +101,9 @@ namespace SgmlReaderDll.Reader {
     [SuppressMessage("Microsoft.Performance", "CA1811", Justification = "Kept for potential future usage.")]
     public void RemoveAt(int i)
     {
-      this.m_items[i] = null;
-      Array.Copy(this.m_items, i + 1, this.m_items, i, this.m_count - i - 1);
-      this.m_count--;
+      _items[i] = null;
+      Array.Copy(_items, i + 1, _items, i, _count - i - 1);
+      _count--;
     }
   }
 }

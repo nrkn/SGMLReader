@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using SgmlReaderDll.Parser.Extensions;
+using SgmlReaderDll.Extensions;
 
 namespace SgmlReaderDll.Parser {
   /// <summary>
@@ -99,9 +99,9 @@ namespace SgmlReaderDll.Parser {
     /// <returns>True if the specified element can be contained by this element.</returns>
     public bool CanContain(string name, SgmlDtd dtd)
     {
-      if( _exclusions.ContainsCaseInvariant( name ) ) return false;
+      if( _exclusions.ContainsIgnoreCase( name ) ) return false;
 
-      return _inclusions.ContainsCaseInvariant( name ) || ContentModel.CanContain(name, dtd);
+      return _inclusions.ContainsIgnoreCase( name ) || ContentModel.CanContain(name, dtd);
     }
   }
 }
