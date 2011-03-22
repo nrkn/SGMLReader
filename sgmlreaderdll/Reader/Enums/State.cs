@@ -1,6 +1,5 @@
 ﻿namespace SgmlReaderDll.Reader.Enums {
-  internal enum State
-  {
+  internal enum State {
     Initial,    // The initial state (Read has not been called yet)
     Markup,     // Expecting text or markup
     EndTag,     // Positioned on an end tag

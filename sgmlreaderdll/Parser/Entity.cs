@@ -67,7 +67,7 @@ namespace SgmlReaderDll.Parser {
       _stm = stm;
       _resolvedUri = baseUri;
       Proxy = proxy;
-      _isHtml = string.Equals( name, "html", StringComparison.OrdinalIgnoreCase );
+      _isHtml = name.EqualsIgnoreCase( "html" );
     }
 
     /// <summary>
@@ -240,7 +240,7 @@ namespace SgmlReaderDll.Parser {
 
             var resp = wr.GetResponse();
             var actual = resp.ResponseUri;
-            if( !string.Equals( actual.AbsoluteUri, _resolvedUri.AbsoluteUri, StringComparison.OrdinalIgnoreCase ) ) {
+            if( !actual.AbsoluteUri.EqualsIgnoreCase( _resolvedUri.AbsoluteUri ) ) {
               _resolvedUri = actual;
             }
             var contentType = resp.ContentType.ToLowerInvariant();
@@ -573,9 +573,9 @@ namespace SgmlReaderDll.Parser {
       var p = this;
       var sb = new StringBuilder();
       while( p != null ) {
-        var msg = 
-          p.IsInternal ? 
-          string.Format( CultureInfo.InvariantCulture, "\nReferenced on line {0}, position {1} of internal entity '{2}'", p.Line, p.LinePosition, p.Name ) : 
+        var msg =
+          p.IsInternal ?
+          string.Format( CultureInfo.InvariantCulture, "\nReferenced on line {0}, position {1} of internal entity '{2}'", p.Line, p.LinePosition, p.Name ) :
           string.Format( CultureInfo.InvariantCulture, "\nReferenced on line {0}, position {1} of '{2}' entity at [{3}]", p.Line, p.LinePosition, p.Name, p.ResolvedUri.AbsolutePath );
         sb.Append( msg );
         p = p.Parent;
@@ -590,9 +590,7 @@ namespace SgmlReaderDll.Parser {
     /// <param name="token">The token to check.</param>
     /// <returns>true if the token is "CDATA", "SDATA" or "PI", otherwise false.</returns>
     public static bool IsLiteralType( string token ) {
-      return string.Equals( token, "CDATA", StringComparison.OrdinalIgnoreCase ) ||
-        string.Equals( token, "SDATA", StringComparison.OrdinalIgnoreCase ) ||
-          string.Equals( token, "PI", StringComparison.OrdinalIgnoreCase );
+      return new[] { "CDATA", "SDATA", "PI" }.ContainsIgnoreCase( token );
     }
 
     /// <summary>

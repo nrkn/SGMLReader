@@ -463,7 +463,7 @@ namespace SgmlReaderDll.Reader {
     public override string NamespaceURI {
       get {
         // SGML has no namespaces, unless this turned out to be an xmlns attribute.
-        if( _state == State.Attr && string.Equals( _a.Name, "xmlns", StringComparison.OrdinalIgnoreCase ) ) {
+        if( _state == State.Attr && _a.Name.EqualsIgnoreCase( "xmlns" ) ) {
           return "http://www.w3.org/2000/xmlns/";
         }
 
@@ -946,7 +946,7 @@ namespace SgmlReaderDll.Reader {
             }
             break;
           case State.EndTag:
-            if( string.Equals( _endTag, _node.Name, StringComparison.OrdinalIgnoreCase ) ) {
+            if( _endTag.EqualsIgnoreCase( _node.Name ) ) {
               Pop(); // we're done!
               _state = State.Markup;
               goto case State.Markup;
@@ -1016,12 +1016,9 @@ namespace SgmlReaderDll.Reader {
         _node = Top();
         return true;
       }
-      if( !_foundRoot && ( NodeType == XmlNodeType.Element ||
-              NodeType == XmlNodeType.Text ||
-              NodeType == XmlNodeType.CDATA ) ) {
+      if( !_foundRoot && ( NodeType == XmlNodeType.Element || NodeType == XmlNodeType.Text || NodeType == XmlNodeType.CDATA ) ) {
         _foundRoot = true;
-        if( IsHtml && ( NodeType != XmlNodeType.Element ||
-            !string.Equals( LocalName, "html", StringComparison.OrdinalIgnoreCase ) ) ) {
+        if( IsHtml && ( NodeType != XmlNodeType.Element || !LocalName.EqualsIgnoreCase( "html" ) ) ) {
           // Simulate an HTML root element!
           _node.CurrentState = _state;
           var root = Push( "html", XmlNodeType.Element, null );
@@ -1320,7 +1317,7 @@ namespace SgmlReaderDll.Reader {
         return false;
       }
 
-      if( !string.Equals( name, "CDATA", StringComparison.OrdinalIgnoreCase ) ) {
+      if( !name.EqualsIgnoreCase( "CDATA" ) ) {
         Log( "Expecting CDATA but found '{0}'", name );
         _current.ScanToEnd( null, "CDATA", ">" );
         return false;
@@ -1564,7 +1561,7 @@ namespace SgmlReaderDll.Reader {
           else if( ch == '/' ) {
             // see if this is the end tag for this CDATA node.
             var temp = _sb.ToString();
-            if( ParseEndTag() && string.Equals( _endTag, _node.Name, StringComparison.OrdinalIgnoreCase ) ) {
+            if( ParseEndTag() && _endTag.EqualsIgnoreCase( _node.Name ) ) {
               if( ws || string.IsNullOrEmpty( temp ) ) {
                 // we are done!
                 return true;
@@ -1648,14 +1645,14 @@ namespace SgmlReaderDll.Reader {
 
               return;
             }
-            
+
             var ex = new Entity( name, e.PublicId, e.Uri, _current.Proxy );
             e.Open( _current, new Uri( e.Uri ) );
             _current = ex;
             _current.ReadChar();
             return;
           }
-          
+
           Log( "Undefined entity '{0}'", name );
         }
         // Entity is not defined, so just keep it in with the rest of the
@@ -1912,7 +1909,7 @@ namespace SgmlReaderDll.Reader {
             // auto-close it.  We'll just have to live with the
             // junk we've found and move on.            
             !f.EndTagOptional
-          ) break;          
+          ) break;
         }
       }
 
@@ -1924,7 +1921,7 @@ namespace SgmlReaderDll.Reader {
 
       if( i >= top ) return;
       var t = (Node) _stack[ top ];
-      if( i == top - 1 && string.Equals( name, t.Name, StringComparison.OrdinalIgnoreCase ) ) {
+      if( i == top - 1 && name.EqualsIgnoreCase( t.Name ) ) {
         // e.g. p not allowed inside p, not an interesting error.
       }
       else {

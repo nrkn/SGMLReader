@@ -145,8 +145,7 @@ namespace SgmlReader {
         _encoding = reader.GetEncoding();
       }
 
-      XmlTextWriter w;
-      w = _output != null ? new XmlTextWriter( _output, _encoding ) : new XmlTextWriter( Console.Out );
+      var w = _output != null ? new XmlTextWriter( _output, _encoding ) : new XmlTextWriter( Console.Out );
 
       if( _formatted ) w.Formatting = Formatting.Indented;
       if( !_noxmldecl ) {

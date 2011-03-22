@@ -7,8 +7,7 @@ namespace SgmlReaderDll.Parser {
   /// <summary>
   /// An element declaration in a DTD.
   /// </summary>
-  public class ElementDecl
-  {
+  public class ElementDecl {
     private readonly string[] _inclusions;
     private readonly string[] _exclusions;
     private Dictionary<string, AttDef> _attList;
@@ -22,8 +21,7 @@ namespace SgmlReaderDll.Parser {
     /// <param name="cm">The <see cref="ContentModel"/> of the element.</param>
     /// <param name="inclusions"></param>
     /// <param name="exclusions"></param>
-    public ElementDecl(string name, bool sto, bool eto, ContentModel cm, string[] inclusions, string[] exclusions)
-    {
+    public ElementDecl( string name, bool sto, bool eto, ContentModel cm, string[] inclusions, string[] exclusions ) {
       Name = name;
       StartTagOptional = sto;
       EndTagOptional = eto;
@@ -60,13 +58,12 @@ namespace SgmlReaderDll.Parser {
     /// <param name="name">The name of the <see cref="AttDef"/> to find.</param>
     /// <returns>The <see cref="AttDef"/> with the specified name.</returns>
     /// <exception cref="InvalidOperationException">If the attribute list has not yet been initialised.</exception>
-    public AttDef FindAttribute(string name)
-    {
-      if (_attList == null)
-        throw new InvalidOperationException("The attribute list for the element declaration has not been initialised.");
+    public AttDef FindAttribute( string name ) {
+      if( _attList == null )
+        throw new InvalidOperationException( "The attribute list for the element declaration has not been initialised." );
 
       AttDef a;
-      _attList.TryGetValue(name.ToUpperInvariant(), out a);
+      _attList.TryGetValue( name.ToUpperInvariant(), out a );
       return a;
     }
 
@@ -74,19 +71,16 @@ namespace SgmlReaderDll.Parser {
     /// Adds attribute definitions to the element declaration.
     /// </summary>
     /// <param name="list">The list of attribute definitions to add.</param>
-    public void AddAttDefs(Dictionary<string, AttDef> list)
-    {
-      if (list == null)
-        throw new ArgumentNullException("list");
+    public void AddAttDefs( Dictionary<string, AttDef> list ) {
+      if( list == null )
+        throw new ArgumentNullException( "list" );
 
-      if (_attList == null) 
-      {
+      if( _attList == null ) {
         _attList = list;
-      } 
-      else 
-      {
+      }
+      else {
         foreach( var a in list.Values.Where( a => !_attList.ContainsKey( a.Name ) ) ) {
-          _attList.Add(a.Name, a);
+          _attList.Add( a.Name, a );
         }
       }
     }
@@ -97,11 +91,10 @@ namespace SgmlReaderDll.Parser {
     /// <param name="name">The name of the element to check for.</param>
     /// <param name="dtd">The DTD to use to do the check.</param>
     /// <returns>True if the specified element can be contained by this element.</returns>
-    public bool CanContain(string name, SgmlDtd dtd)
-    {
+    public bool CanContain( string name, SgmlDtd dtd ) {
       if( _exclusions.ContainsIgnoreCase( name ) ) return false;
 
-      return _inclusions.ContainsIgnoreCase( name ) || ContentModel.CanContain(name, dtd);
+      return _inclusions.ContainsIgnoreCase( name ) || ContentModel.CanContain( name, dtd );
     }
   }
 }

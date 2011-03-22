@@ -4,14 +4,14 @@ using System.Text;
 
 namespace SgmlReaderDll.Parser.Ucs4 {
   internal abstract class Ucs4Decoder : Decoder {
-    internal byte[] Temp = new byte[4];
+    internal byte[] Temp = new byte[ 4 ];
     internal int TempBytes;
 
-    public override int GetCharCount(byte[] bytes, int index, int count) {
-      return (count + TempBytes) / 4;
+    public override int GetCharCount( byte[] bytes, int index, int count ) {
+      return ( count + TempBytes ) / 4;
     }
 
-    internal int GetFullChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex) {
+    internal int GetFullChars( byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex ) {
       int i, j;
       byteCount += byteIndex;
       for( i = byteIndex, j = charIndex; i + 3 < byteCount; ) {
@@ -32,44 +32,45 @@ namespace SgmlReaderDll.Parser.Ucs4 {
         j++;
         i += 4;
       }
-      return j - charIndex;      
+      return j - charIndex;
     }
-    
+
     internal abstract uint GetCode( int i, byte[] bytes );
 
-    public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex) {
+    public override int GetChars( byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex ) {
       var i = TempBytes;
 
-      if (TempBytes > 0) {
-        for (; i < 4; i++) {
-          Temp[i] = bytes[byteIndex];
+      if( TempBytes > 0 ) {
+        for( ; i < 4; i++ ) {
+          Temp[ i ] = bytes[ byteIndex ];
           byteIndex++;
           byteCount--;
         }
         i = 1;
-        GetFullChars(Temp, 0, 4, chars, charIndex);
+        GetFullChars( Temp, 0, 4, chars, charIndex );
         charIndex++;
-      } else
+      }
+      else
         i = 0;
-      i = GetFullChars(bytes, byteIndex, byteCount, chars, charIndex) + i;
+      i = GetFullChars( bytes, byteIndex, byteCount, chars, charIndex ) + i;
 
-      var j = (TempBytes + byteCount) % 4;
+      var j = ( TempBytes + byteCount ) % 4;
       byteCount += byteIndex;
       byteIndex = byteCount - j;
       TempBytes = 0;
 
-      if (byteIndex >= 0)
-        for (; byteIndex < byteCount; byteIndex++) {
-          Temp[TempBytes] = bytes[byteIndex];
+      if( byteIndex >= 0 )
+        for( ; byteIndex < byteCount; byteIndex++ ) {
+          Temp[ TempBytes ] = bytes[ byteIndex ];
           TempBytes++;
         }
       return i;
     }
 
-    internal static char UnicodeToUtf16(UInt32 code) {
-      var lowerByte = (byte)(0xD7C0 + (code >> 10));
-      var higherByte = (byte)(0xDC00 | code & 0x3ff);
-      return ((char)((higherByte << 8) | lowerByte));
+    internal static char UnicodeToUtf16( UInt32 code ) {
+      var lowerByte = (byte) ( 0xD7C0 + ( code >> 10 ) );
+      var higherByte = (byte) ( 0xDC00 | code & 0x3ff );
+      return ( (char) ( ( higherByte << 8 ) | lowerByte ) );
     }
   }
 }
