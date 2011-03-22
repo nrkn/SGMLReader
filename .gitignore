@@ -5,6 +5,7 @@ dist/
 [Rr]elease/
 Signed Debug/
 Signed Release/
+_UpgradeReport_Files/
 obj/
 *.ncb
 *.suo
