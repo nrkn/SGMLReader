@@ -7,11 +7,12 @@
 using System;
 using System.Xml;
 using System.IO;
-using System.Net;
 using System.Text;
-using System.Collections;
+using SgmlReaderDll;
+using SgmlReaderDll.Reader;
+using SgmlReaderDll.Reader.Enums;
 
-namespace Sgml {
+namespace SgmlReader {
     /// <summary>
     /// This class provides a command line interface to the SgmlReader.
     /// </summary>
@@ -35,7 +36,7 @@ namespace Sgml {
         }
 
         public void Run(string[] args) {
-            SgmlReader reader = new SgmlReader();
+            SgmlReaderDll.Reader.SgmlReader reader = new SgmlReaderDll.Reader.SgmlReader();
             string inputUri = null;
 
             for (int i = 0; i < args.Length; i++) {
@@ -133,7 +134,7 @@ namespace Sgml {
             return ;
         }
 
-        void Process(SgmlReader reader, string uri) {   
+        void Process(SgmlReaderDll.Reader.SgmlReader reader, string uri) {   
             if (uri == null) {
                 reader.InputStream = Console.In;
             } else {

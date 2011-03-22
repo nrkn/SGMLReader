@@ -4,14 +4,14 @@
  * 
  */
 
-using System;
-using System.Diagnostics;
 using System.IO;
 using System.Xml;
 using NUnit.Framework;
-using Sgml;
+using SgmlReaderDll;
+using SgmlReaderDll.Reader;
+using SgmlReaderDll.Reader.Enums;
 
-namespace Sgml {
+namespace SGMLTests {
 
     [TestFixture]
     public partial class Tests {

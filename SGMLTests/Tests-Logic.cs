@@ -9,9 +9,11 @@ using System.IO;
 using System.Xml;
 using log4net;
 using NUnit.Framework;
-using Sgml;
+using SgmlReaderDll;
+using SgmlReaderDll.Reader;
+using SgmlReaderDll.Reader.Enums;
 
-namespace Sgml {
+namespace SGMLTests {
     public partial class Tests {
 
         //--- Types ---
