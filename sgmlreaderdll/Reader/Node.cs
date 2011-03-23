@@ -48,6 +48,7 @@ namespace SgmlReaderDll.Reader {
           return null;
         }
       }
+
       // This code makes use of the high water mark for attribute objects,
       // and reuses exisint Attribute objects to avoid memory allocation.
       a = (Attribute) _attributes.Push();
@@ -56,6 +57,7 @@ namespace SgmlReaderDll.Reader {
         _attributes[ _attributes.Count - 1 ] = a;
       }
       a.Reset( name, value, quotechar );
+
       return a;
     }
 
@@ -69,6 +71,7 @@ namespace SgmlReaderDll.Reader {
         return;
       }
     }
+
     public void CopyAttributes( Node n ) {
       var len = n._attributes.Count;
       for( var i = 0; i < len; i++ ) {

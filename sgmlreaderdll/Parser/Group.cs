@@ -103,15 +103,8 @@ namespace SgmlReaderDll.Parser {
     /// </summary>
     /// <param name="c">The occurrence character.</param>
     public void AddOccurrence( char c ) {
-      var occurences = new Dictionary<char, Occurrence> {
-        {'?', Occurrence.Optional},
-        {'+', Occurrence.OneOrMore},
-        {'*', Occurrence.ZeroOrMore}
-      };
-
-      if( occurences.ContainsKey( c ) ) {
-        Occurrence = occurences[ c ];
-        return;
+      if( Occurrences.Contains( c ) ) {
+        Occurrence = Occurrences.FromChar( c );
       }
 
       Occurrence = Occurrence.Required;

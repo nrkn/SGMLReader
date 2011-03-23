@@ -15,7 +15,7 @@ namespace SgmlReaderDll.Parser {
   /// </summary>
   public class SgmlDtd {
     private readonly Dictionary<string, ElementDecl> _elements;
-    private readonly Dictionary<string, Entity> _pentities;
+    private readonly Dictionary<string, Entity> _parameterEntities;
     private readonly Dictionary<string, Entity> _entities;
     private readonly StringBuilder _sb;
     private Entity _current;
@@ -28,7 +28,7 @@ namespace SgmlReaderDll.Parser {
     public SgmlDtd( string name, XmlNameTable nt ) {
       Name = name;
       _elements = new Dictionary<string, ElementDecl>();
-      _pentities = new Dictionary<string, Entity>();
+      _parameterEntities = new Dictionary<string, Entity>();
       _entities = new Dictionary<string, Entity>();
       _sb = new StringBuilder();
     }
@@ -93,9 +93,9 @@ namespace SgmlReaderDll.Parser {
     public static SgmlDtd Parse( Uri baseUri, string name, TextReader input, string subset, string proxy, XmlNameTable nt ) {
       var dtd = new SgmlDtd( name, nt );
       dtd.PushEntity( baseUri, new Entity( dtd.Name, baseUri, input, proxy ) );
-      if( !string.IsNullOrEmpty( subset ) ) {
-        dtd.PushEntity( baseUri, new Entity( name, subset ) );
-      }
+
+      if( !string.IsNullOrEmpty( subset ) )
+        dtd.PushEntity( baseUri, new Entity( name, subset ) );      
 
       try {
         dtd.Parse();
@@ -181,15 +181,20 @@ namespace SgmlReaderDll.Parser {
 
     void ParseMarkup() {
       var ch = _current.ReadChar();
+
       if( ch != '!' ) {
         _current.Error( "Found '{0}', but expecing declaration starting with '<!'" );
         return;
       }
+
       ch = _current.ReadChar();
       switch( ch ) {
         case '-':
           ch = _current.ReadChar();
-          if( ch != '-' ) _current.Error( "Expecting comment '<!--' but found {0}", ch );
+          
+          if( ch != '-' ) 
+            _current.Error( "Expecting comment '<!--' but found {0}", ch );
+
           _current.ScanToEnd( _sb, "Comment", "-->" );
           break;
         case '[':
@@ -218,9 +223,11 @@ namespace SgmlReaderDll.Parser {
 
     char ParseDeclComments() {
       var ch = _current.Lastchar;
+
       while( ch == '-' ) {
         ch = ParseDeclComment( true );
       }
+
       return ch;
     }
 
@@ -228,8 +235,12 @@ namespace SgmlReaderDll.Parser {
       // -^-...--
       // This method scans over a comment inside a markup declaration.
       var ch = _current.ReadChar();
-      if( full && ch != '-' ) _current.Error( "Expecting comment delimiter '--' but found {0}", ch );
+      
+      if( full && ch != '-' ) 
+        _current.Error( "Expecting comment delimiter '--' but found {0}", ch );
+
       _current.ScanToEnd( _sb, "Markup Comment", "--" );
+
       return _current.SkipWhitespace();
     }
 
@@ -237,15 +248,18 @@ namespace SgmlReaderDll.Parser {
       // <![^ name [ ... ]]>
       _current.ReadChar(); // move to next char.
       var name = ScanName( "[" );
+      
       if( name.EqualsIgnoreCase( "INCLUDE" ) ) {
         ParseIncludeSection();
+        return;
       }
-      else if( name.EqualsIgnoreCase( "IGNORE" ) ) {
+      
+      if( name.EqualsIgnoreCase( "IGNORE" ) ) {
         ParseIgnoreSection();
+        return;
       }
-      else {
-        _current.Error( "Unsupported marked section type '{0}'", name );
-      }
+
+      _current.Error( "Unsupported marked section type '{0}'", name );
     }
 
     [SuppressMessage( "Microsoft.Performance", "CA1822", Justification = "This is not yet implemented and will use 'this' in the future." )]
@@ -257,7 +271,10 @@ namespace SgmlReaderDll.Parser {
     void ParseIgnoreSection() {
       // <!-^-...-->
       var ch = _current.SkipWhitespace();
-      if( ch != '[' ) _current.Error( "Expecting '[' but found {0}", ch );
+      
+      if( ch != '[' ) 
+        _current.Error( "Expecting '[' but found {0}", ch );
+
       _current.ScanToEnd( _sb, "Conditional Section", "]]>" );
     }
 
@@ -265,12 +282,16 @@ namespace SgmlReaderDll.Parser {
       // skip whitespace, scan name (which may be parameter entity reference
       // which is then expanded to a name)
       var ch = _current.SkipWhitespace();
-      if( ch != '%' ) {
+
+      if( ch != '%' )
         return _current.ScanToken( _sb, term, true );
-      }
+
       var e = ParseParameterEntity( term );
+      
       // bugbug - need to support external and nested parameter entities
-      if( !e.IsInternal ) throw new NotSupportedException( "External parameter entity resolution" );
+      if( !e.IsInternal ) 
+        throw new NotSupportedException( "External parameter entity resolution" );
+
       return e.Literal.Trim();
     }
 
@@ -278,15 +299,17 @@ namespace SgmlReaderDll.Parser {
       // almost the same as current.ScanToken, except we also terminate on ';'
       _current.ReadChar();
       var name = _current.ScanToken( _sb, ";" + term, false );
+      
       if( _current.Lastchar == ';' )
         _current.ReadChar();
-      var e = GetParameterEntity( name );
-      return e;
+
+      return GetParameterEntity( name );
     }
 
     private Entity GetParameterEntity( string name ) {
       Entity e;
-      _pentities.TryGetValue( name, out e );
+      _parameterEntities.TryGetValue( name, out e );
+
       if( e == null )
         _current.Error( "Reference to undefined parameter entity '{0}'", name );
 
@@ -306,30 +329,33 @@ namespace SgmlReaderDll.Parser {
 
     private void ParseEntity() {
       var ch = _current.SkipWhitespace();
-      var pe = ( ch == '%' );
-      if( pe ) {
+      var isParameter = ch == '%';
+      
+      if( isParameter ) {
         // parameter entity.
         _current.ReadChar(); // move to next char
         _current.SkipWhitespace();
       }
+
       var name = _current.ScanToken( _sb, WhiteSpace, true );
       ch = _current.SkipWhitespace();
-      Entity e;
+      Entity entity;
       if( ch == '"' || ch == '\'' ) {
         var literal = _current.ScanLiteral( _sb, ch );
-        e = new Entity( name, literal );
+        entity = new Entity( name, literal );
       }
       else {
         string pubid = null;
-        var tok = _current.ScanToken( _sb, WhiteSpace, true );
-        if( Entity.IsLiteralType( tok ) ) {
+        var token = _current.ScanToken( _sb, WhiteSpace, true );
+        if( Entity.IsLiteralType( token ) ) {
           ch = _current.SkipWhitespace();
           var literal = _current.ScanLiteral( _sb, ch );
-          e = new Entity( name, literal );
-          e.SetLiteralType( tok );
+          entity = new Entity( name, literal );
+          entity.SetLiteralType( token );
         }
         else {
-          var extid = tok;
+          var extid = token;
+
           if( extid.EqualsIgnoreCase( "PUBLIC" ) ) {
             ch = _current.SkipWhitespace();
             if( ch == '"' || ch == '\'' ) {
@@ -342,46 +368,46 @@ namespace SgmlReaderDll.Parser {
           else if( !extid.EqualsIgnoreCase( "SYSTEM" ) ) {
             _current.Error( "Invalid external identifier '{0}'.  Expecing 'PUBLIC' or 'SYSTEM'.", extid );
           }
+
           string uri = null;
           ch = _current.SkipWhitespace();
+
           if( ch == '"' || ch == '\'' ) {
             uri = _current.ScanLiteral( _sb, ch );
           }
           else if( ch != '>' ) {
             _current.Error( "Expecting system identifier literal but found '{0}'", ch );
           }
-          e = new Entity( name, pubid, uri, _current.Proxy );
+
+          entity = new Entity( name, pubid, uri, _current.Proxy );
         }
       }
+
       ch = _current.SkipWhitespace();
+
       if( ch == '-' )
         ch = ParseDeclComments();
-      if( ch != '>' ) {
-        _current.Error( "Expecting end of entity declaration '>' but found '{0}'", ch );
-      }
-      if( pe )
-        _pentities.Add( e.Name, e );
+
+      if( ch != '>' )
+        _current.Error( "Expecting end of entity declaration '>' but found '{0}'", ch );      
+
+      if( isParameter )
+        _parameterEntities.Add( entity.Name, entity );
       else
-        _entities.Add( e.Name, e );
+        _entities.Add( entity.Name, entity );
     }
 
     private void ParseElementDecl() {
       var ch = _current.SkipWhitespace();
       var names = ParseNameGroup( ch, true );
       ch = char.ToUpperInvariant( _current.SkipWhitespace() );
-      var sto = false;
-      var eto = false;
-      if( ch == 'O' || ch == '-' ) {
-        sto = ( ch == 'O' ); // start tag optional?   
-        _current.ReadChar();
-        ch = char.ToUpperInvariant( _current.SkipWhitespace() );
-        if( ch == 'O' || ch == '-' ) {
-          eto = ( ch == 'O' ); // end tag optional? 
-          _current.ReadChar();
-        }
-      }
+
+      var tagsOptional = GetTagsOptional( ch );
+      var startTagOptional = tagsOptional.Item1;
+      var endTagOptional = tagsOptional.Item2;
+
       ch = _current.SkipWhitespace();
-      var cm = ParseContentModel( ch );
+      var contentModel = ParseContentModel( ch );
       ch = _current.SkipWhitespace();
 
       string[] exclusions = null;
@@ -418,19 +444,36 @@ namespace SgmlReaderDll.Parser {
       if( ch == '-' )
         ch = ParseDeclComments();
 
-
       if( ch != '>' ) {
         _current.Error( "Expecting end of ELEMENT declaration '>' but found '{0}'", ch );
       }
 
       foreach( var atom in names.Select( name => name.ToUpperInvariant() ) ) {
-        _elements.Add( atom, new ElementDecl( atom, sto, eto, cm, inclusions, exclusions ) );
+        _elements.Add( atom, new ElementDecl( atom, startTagOptional, endTagOptional, contentModel, inclusions, exclusions ) );
       }
     }
 
+    private Tuple<bool, bool> GetTagsOptional( char ch ) {
+      var startTagOptional = false;
+      var endTagOptional = false;
+      
+      if( ch == 'O' || ch == '-' ) {
+        startTagOptional = ( ch == 'O' ); // start tag optional?   
+        _current.ReadChar();
+        ch = char.ToUpperInvariant( _current.SkipWhitespace() );
+
+        if( ch == 'O' || ch == '-' ) {
+          endTagOptional = ( ch == 'O' ); // end tag optional? 
+          _current.ReadChar();
+        }
+      }  
+    
+      return new Tuple<bool, bool>( startTagOptional, endTagOptional );
+    }
+    
     const string Ngterm = " \r\n\t|,)";
     string[] ParseNameGroup( char ch, bool nmtokens ) {
-      var names = new ArrayList();
+      var names = new List<string>();
       if( ch == '(' ) {
         _current.ReadChar();
         ch = _current.SkipWhitespace();
@@ -438,9 +481,10 @@ namespace SgmlReaderDll.Parser {
           // skip whitespace, scan name (which may be parameter entity reference
           // which is then expanded to a name)                    
           ch = _current.SkipWhitespace();
+          
           if( ch == '%' ) {
-            var e = ParseParameterEntity( Ngterm );
-            PushEntity( _current.ResolvedUri, e );
+            var entity = ParseParameterEntity( Ngterm );
+            PushEntity( _current.ResolvedUri, entity );
             ParseNameList( names );
             PopEntity();
           }
@@ -449,8 +493,10 @@ namespace SgmlReaderDll.Parser {
             token = token.ToUpperInvariant();
             names.Add( token );
           }
+
           ch = _current.SkipWhitespace();
-          if( ch == '|' || ch == ',' ) ch = _current.ReadChar();
+          if( ch == '|' || ch == ',' ) 
+            ch = _current.ReadChar();
         }
         _current.ReadChar(); // consume ')'
       }
@@ -459,10 +505,11 @@ namespace SgmlReaderDll.Parser {
         name = name.ToUpperInvariant();
         names.Add( name );
       }
-      return (string[]) names.ToArray( typeof( string ) );
+
+      return names.ToArray();
     }
 
-    void ParseNameList( IList names ) {
+    void ParseNameList( ICollection<string> names ) {
       var ch = _current.SkipWhitespace();
       while( ch != Entity.EOF ) {
         string name;
@@ -477,6 +524,7 @@ namespace SgmlReaderDll.Parser {
           name = name.ToUpperInvariant();
           names.Add( name );
         }
+
         ch = _current.SkipWhitespace();
         if( ch != '|' ) continue;
         _current.ReadChar();
@@ -492,7 +540,7 @@ namespace SgmlReaderDll.Parser {
           _current.ReadChar();
           ParseModel( ')', cm );
           ch = _current.ReadChar();
-          if( ch == '?' || ch == '+' || ch == '*' ) {
+          if( Occurrences.Contains( ch ) ) {
             cm.AddOccurrence( ch );
             _current.ReadChar();
           }
@@ -524,13 +572,12 @@ namespace SgmlReaderDll.Parser {
           _current.Error( "Content Model was not closed" );
         }
         switch( ch ) {
-          case '%': {
-              var e = ParseParameterEntity( Cmterm );
-              PushEntity( _current.ResolvedUri, e );
-              ParseModel( Entity.EOF, cm );
-              PopEntity();
-              ch = _current.SkipWhitespace();
-            }
+          case '%': 
+            var e = ParseParameterEntity( Cmterm );
+            PushEntity( _current.ResolvedUri, e );
+            ParseModel( Entity.EOF, cm );
+            PopEntity();
+            ch = _current.SkipWhitespace();
             break;
           case '(':
             cm.PushGroup();
@@ -539,7 +586,7 @@ namespace SgmlReaderDll.Parser {
             break;
           case ')':
             ch = _current.ReadChar();// consume ')'
-            if( ch == '*' || ch == '+' || ch == '?' ) {
+            if( Occurrences.Contains( ch ) ) {
               cm.AddOccurrence( ch );
               _current.ReadChar();
             }
@@ -555,31 +602,33 @@ namespace SgmlReaderDll.Parser {
             _current.ReadChar(); // skip connector
             ch = _current.SkipWhitespace();
             break;
-          default: {
-              string token;
-              if( ch == '#' ) {
-                _current.ReadChar();
-                token = "#" + _current.ScanToken( _sb, Cmterm, true ); // since '#' is not a valid name character.
-              }
-              else {
-                token = _current.ScanToken( _sb, Cmterm, true );
-              }
+          default: 
+            string token;
 
-              token = token.ToUpperInvariant();
-              ch = _current.Lastchar;
-              if( ch == '?' || ch == '+' || ch == '*' ) {
-                cm.PushGroup();
-                cm.AddSymbol( token );
-                cm.AddOccurrence( ch );
-                cm.PopGroup();
-                _current.ReadChar(); // skip connector
-                ch = _current.SkipWhitespace();
-              }
-              else {
-                cm.AddSymbol( token );
-                ch = _current.SkipWhitespace();
-              }
+            if( ch == '#' ) {
+              _current.ReadChar();
+              token = "#" + _current.ScanToken( _sb, Cmterm, true ); // since '#' is not a valid name character.
             }
+            else {
+              token = _current.ScanToken( _sb, Cmterm, true );
+            }
+
+            token = token.ToUpperInvariant();
+            ch = _current.Lastchar;
+
+            if( Occurrences.Contains( ch ) ) {
+              cm.PushGroup();
+              cm.AddSymbol( token );
+              cm.AddOccurrence( ch );
+              cm.PopGroup();
+              _current.ReadChar(); // skip connector
+              ch = _current.SkipWhitespace();
+            }
+            else {
+              cm.AddSymbol( token );
+              ch = _current.SkipWhitespace();
+            }
+            
             break;
         }
       }
@@ -592,6 +641,7 @@ namespace SgmlReaderDll.Parser {
       ParseAttList( attlist, '>' );
       foreach( var name in names ) {
         ElementDecl e;
+
         if( !_elements.TryGetValue( name, out e ) ) {
           _current.Error( "ATTLIST references undefined ELEMENT {0}", name );
         }
@@ -622,6 +672,7 @@ namespace SgmlReaderDll.Parser {
             }
             break;
         }
+
         ch = _current.SkipWhitespace();
       }
     }

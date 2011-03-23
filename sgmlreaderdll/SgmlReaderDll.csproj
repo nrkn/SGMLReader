@@ -122,6 +122,7 @@
     <Compile Include="Parser\Group.cs" />
     <Compile Include="Parser\HtmlStream.cs" />
     <Compile Include="Parser\Enums\Occurrence.cs" />
+    <Compile Include="Parser\Occurrences.cs" />
     <Compile Include="Parser\SgmlDtd.cs" />
     <Compile Include="Parser\SgmlParseException.cs" />
     <Compile Include="Parser\Ucs4\Ucs4Decoder.cs" />

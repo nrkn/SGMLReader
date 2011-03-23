@@ -207,81 +207,104 @@ namespace SgmlReaderDll.Parser {
     /// <param name="baseUri">The base Uri for processing this entity within.</param>
     public void Open( Entity parent, Uri baseUri ) {
       Parent = parent;
+      
       if( parent != null )
         _isHtml = parent.IsHtml;
+
       Line = 1;
+
       if( IsInternal ) {
         if( Literal != null )
           _stm = new StringReader( Literal );
+
+        return;
       }
-      else if( Uri == null ) {
+
+      if( Uri == null ) {
         Error( "Unresolvable entity '{0}'", Name );
+        return;
       }
-      else {
-        _resolvedUri = baseUri != null ? new Uri( baseUri, Uri ) : new Uri( Uri );
 
-        Stream stream;
-        var e = Encoding.Default;
-        switch( _resolvedUri.Scheme ) {
-          case "file": {
-              var path = _resolvedUri.LocalPath;
-              stream = new FileStream( path, FileMode.Open, FileAccess.Read );
-            }
-            break;
-          default:
-            var wr = (HttpWebRequest) WebRequest.Create( ResolvedUri );
-            wr.UserAgent = "Mozilla/4.0 (compatible;);";
-            wr.Timeout = 10000; // in case this is running in an ASPX page.
-            if( Proxy != null )
-              wr.Proxy = new WebProxy( Proxy );
-            wr.PreAuthenticate = false;
-            // Pass the credentials of the process. 
-            wr.Credentials = CredentialCache.DefaultCredentials;
+      _resolvedUri = baseUri != null ? new Uri( baseUri, Uri ) : new Uri( Uri );
 
-            var resp = wr.GetResponse();
-            var actual = resp.ResponseUri;
-            if( !actual.AbsoluteUri.EqualsIgnoreCase( _resolvedUri.AbsoluteUri ) ) {
-              _resolvedUri = actual;
-            }
-            var contentType = resp.ContentType.ToLowerInvariant();
-            var mimeType = contentType;
-            var i = contentType.IndexOf( ';' );
-            if( i >= 0 ) {
-              mimeType = contentType.Substring( 0, i );
-            }
+      Stream stream;
+      var encoding = Encoding.Default;
+      switch( _resolvedUri.Scheme ) {
+        case "file": 
+          var path = _resolvedUri.LocalPath;
+          stream = new FileStream( path, FileMode.Open, FileAccess.Read );        
 
-            if( mimeType.EqualsIgnoreCase( "text/html" ) ) {
-              _isHtml = true;
-            }
+          break;
+        default:
+          var response = GetWebResponse();
+          var actual = response.ResponseUri;
+          
+          if( !actual.AbsoluteUri.EqualsIgnoreCase( _resolvedUri.AbsoluteUri ) ) {
+            _resolvedUri = actual;
+          }
 
-            i = contentType.IndexOf( "charset" );
-            e = Encoding.Default;
-            if( i >= 0 ) {
-              var j = contentType.IndexOf( "=", i );
-              var k = contentType.IndexOf( ";", j );
-              if( k < 0 )
-                k = contentType.Length;
+          var contentType = response.ContentType.ToLowerInvariant();
+          encoding = GetEncoding( contentType );
+          stream = response.GetResponseStream();
 
-              if( j > 0 ) {
-                j++;
-                var charset = contentType.Substring( j, k - j ).Trim();
-                try {
-                  e = Encoding.GetEncoding( charset );
-                }
-                catch( ArgumentException ) {
-                }
-              }
-            }
+          break;
+      }
 
-            stream = resp.GetResponseStream();
-            break;
+      _weOwnTheStream = true;
+
+      var html = new HtmlStream( stream, encoding );
+      Encoding = html.Encoding;
+      _stm = html;
+    }
+
+    private WebResponse GetWebResponse() {
+      var wr = (HttpWebRequest) WebRequest.Create( ResolvedUri );
+      wr.UserAgent = "Mozilla/4.0 (compatible;);";
+      wr.Timeout = 10000; // in case this is running in an ASPX page.
+      
+      if( Proxy != null )
+        wr.Proxy = new WebProxy( Proxy );
+
+      wr.PreAuthenticate = false;
+
+      // Pass the credentials of the process. 
+      wr.Credentials = CredentialCache.DefaultCredentials;
+
+      return wr.GetResponse();
+    }
+
+    private Encoding GetEncoding( string contentType ) {
+      var mimeType = contentType;
+      var i = contentType.IndexOf( ';' );
+
+      if( i >= 0 ) {
+        mimeType = contentType.Substring( 0, i );
+      }
+
+      if( mimeType.EqualsIgnoreCase( "text/html" ) ) {
+        _isHtml = true;
+      }
+
+      i = contentType.IndexOf( "charset" );
+      var encoding = Encoding.Default;
+      if( i >= 0 ) {
+        var j = contentType.IndexOf( "=", i );
+        var k = contentType.IndexOf( ";", j );
+        if( k < 0 )
+          k = contentType.Length;
+
+        if( j > 0 ) {
+          j++;
+          var charset = contentType.Substring( j, k - j ).Trim();
+          try {
+            encoding = Encoding.GetEncoding( charset );
+          }
+          catch( ArgumentException ) {
+          }
         }
-
-        _weOwnTheStream = true;
-        var html = new HtmlStream( stream, e );
-        Encoding = html.Encoding;
-        _stm = html;
       }
+
+      return encoding;
     }
 
     /// <summary>
@@ -590,7 +613,7 @@ namespace SgmlReaderDll.Parser {
     /// <param name="token">The token to check.</param>
     /// <returns>true if the token is "CDATA", "SDATA" or "PI", otherwise false.</returns>
     public static bool IsLiteralType( string token ) {
-      return new[] { "CDATA", "SDATA", "PI" }.ContainsIgnoreCase( token );
+      return Enum.GetNames( typeof( LiteralType ) ).ContainsIgnoreCase( token );
     }
 
     /// <summary>

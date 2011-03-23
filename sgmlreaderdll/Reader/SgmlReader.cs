@@ -32,8 +32,8 @@ namespace SgmlReaderDll.Reader {
     /// <summary>
     /// The value returned when a namespace is queried and none has been specified.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage( "Microsoft.Naming", "CA1705", Justification = "SgmlReader's standards for constants are different to Microsoft's and in line with older C++ style constants naming conventions.  Visually, constants using this style are more easily identifiable as such." )]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage( "Microsoft.Naming", "CA1707", Justification = "SgmlReader's standards for constants are different to Microsoft's and in line with older C++ style constants naming conventions.  Visually, constants using this style are more easily identifiable as such." )]
+    [SuppressMessage( "Microsoft.Naming", "CA1705", Justification = "SgmlReader's standards for constants are different to Microsoft's and in line with older C++ style constants naming conventions.  Visually, constants using this style are more easily identifiable as such." )]
+    [SuppressMessage( "Microsoft.Naming", "CA1707", Justification = "SgmlReader's standards for constants are different to Microsoft's and in line with older C++ style constants naming conventions.  Visually, constants using this style are more easily identifiable as such." )]
     public const string UNDEFINED_NAMESPACE = "#unknown";
 
     private SgmlDtd _dtd;
@@ -44,8 +44,8 @@ namespace SgmlReaderDll.Reader {
     private HwStack _stack;
     private Node _node; // current node (except for attributes)
     // Attributes are handled separately using these members.
-    private Attribute _a;
-    private int _apos; // which attribute are we positioned on in the collection.
+    private Attribute _attribute;
+    private int _attributePos; // which attribute are we positioned on in the collection.
     private Uri _baseUri;
     private StringBuilder _sb;
     private StringBuilder _name;
@@ -54,8 +54,8 @@ namespace SgmlReaderDll.Reader {
     private bool _ignoreDtd;
 
     // autoclose support
-    private Node _newnode;
-    private int _poptodepth;
+    private Node _newNode;
+    private int _popToDepth;
     private int _rootCount;
 
     private string _href;
@@ -63,8 +63,8 @@ namespace SgmlReaderDll.Reader {
     private Entity _lastError;
     private string _proxy;
     private TextReader _inputStream;
-    private string _syslit;
-    private string _pubid;
+    private string _systemLiteral;
+    private string _publicIdentifier;
     private string _subset;
     private string _docType;
     private WhitespaceHandling _whitespaceHandling;
@@ -106,34 +106,16 @@ namespace SgmlReaderDll.Reader {
     }
 
     private void LazyLoadDtd( Uri baseUri ) {
-      if( _dtd == null && !_ignoreDtd ) {
-        if( string.IsNullOrEmpty( _syslit ) ) {
-          if( _docType != null && _docType.EqualsIgnoreCase( "html" ) ) {
-            var a = typeof( SgmlReader ).Assembly;
-            var name = a.FullName.Split( ',' )[ 0 ] + ".Html.dtd";
-            var stm = a.GetManifestResourceStream( name );
-            if( stm != null ) {
-              var sr = new StreamReader( stm );
-              _dtd = SgmlDtd.Parse( baseUri, "HTML", sr, null, _proxy, null );
-            }
-          }
-        }
-        else {
-          if( baseUri != null ) {
-            baseUri = new Uri( baseUri, _syslit );
-          }
-          else if( _baseUri != null ) {
-            baseUri = new Uri( _baseUri, _syslit );
-          }
-          else {
-            baseUri = new Uri( new Uri( Directory.GetCurrentDirectory() + "\\" ), _syslit );
-          }
-          _dtd = SgmlDtd.Parse( baseUri, _docType, _pubid, baseUri.AbsoluteUri, _subset, _proxy, null );
-        }
-      }
+      SetDtd( baseUri );
 
       if( _dtd == null || _dtd.Name == null ) return;
 
+      SetRootElementName();
+
+      IsHtml = _dtd.Name.EqualsIgnoreCase( "html" );
+    }
+
+    private void SetRootElementName() {
       switch( CaseFolding ) {
         case CaseFolding.ToUpper:
           RootElementName = _dtd.Name.ToUpperInvariant();
@@ -145,8 +127,39 @@ namespace SgmlReaderDll.Reader {
           RootElementName = _dtd.Name;
           break;
       }
+    }
 
-      IsHtml = _dtd.Name.EqualsIgnoreCase( "html" );
+    private void SetDtd( Uri baseUri ) {
+      if( _dtd != null || _ignoreDtd ) return;
+
+      if( string.IsNullOrEmpty( _systemLiteral ) ) {
+        if( _docType != null && _docType.EqualsIgnoreCase( "html" ) ) {
+          SetHtmlDtd( baseUri );
+        }
+      }
+      else {
+        if( baseUri != null ) {
+          baseUri = new Uri( baseUri, _systemLiteral );
+        }
+        else if( _baseUri != null ) {
+          baseUri = new Uri( _baseUri, _systemLiteral );
+        }
+        else {
+          baseUri = new Uri( new Uri( Directory.GetCurrentDirectory() + "\\" ), _systemLiteral );
+        }
+        _dtd = SgmlDtd.Parse( baseUri, _docType, _publicIdentifier, baseUri.AbsoluteUri, _subset, _proxy, null );
+      }
+    }
+
+    private void SetHtmlDtd( Uri baseUri ) {
+      var assembly = typeof( SgmlReader ).Assembly;
+      var name = assembly.FullName.Split( ',' )[ 0 ] + ".Html.dtd";
+      var stream = assembly.GetManifestResourceStream( name );
+      
+      if( stream == null ) return;
+
+      var reader = new StreamReader( stream );
+      _dtd = SgmlDtd.Parse( baseUri, "HTML", reader, null, _proxy, null );
     }
 
     /// <summary>
@@ -171,10 +184,10 @@ namespace SgmlReaderDll.Reader {
     /// </summary>
     public string PublicIdentifier {
       get {
-        return _pubid;
+        return _publicIdentifier;
       }
       set {
-        _pubid = value;
+        _publicIdentifier = value;
       }
     }
 
@@ -183,10 +196,10 @@ namespace SgmlReaderDll.Reader {
     /// </summary>
     public string SystemLiteral {
       get {
-        return _syslit;
+        return _systemLiteral;
       }
       set {
-        _syslit = value;
+        _systemLiteral = value;
       }
     }
 
@@ -340,13 +353,13 @@ namespace SgmlReaderDll.Reader {
       _node.IsEmpty = false;
       _sb = new StringBuilder();
       _name = new StringBuilder();
-      _poptodepth = 0;
+      _popToDepth = 0;
       _current = null;
       _partial = '\0';
       _endTag = null;
-      _a = null;
-      _apos = 0;
-      _newnode = null;
+      _attribute = null;
+      _attributePos = 0;
+      _newNode = null;
       _rootCount = 0;
       _foundRoot = false;
       _unknownNamespaces.Clear();
@@ -372,7 +385,7 @@ namespace SgmlReaderDll.Reader {
       _stack[ top ] = n;
     }
 
-    private Node Push( Node n ) {
+    private void Push( Node n ) {
       // we have to do a deep clone of the Node object because
       // it is reused in the stack.
       var n2 = Push( n.Name, n.NodeType, n.Value );
@@ -383,7 +396,7 @@ namespace SgmlReaderDll.Reader {
       n2.CurrentState = n.CurrentState;
       n2.CopyAttributes( n );
       _node = n2;
-      return n2;
+      return;
     }
 
     private void Pop() {
@@ -426,8 +439,9 @@ namespace SgmlReaderDll.Reader {
     public override string Name {
       get {
         string result = null;
+
         if( _state == State.Attr ) {
-          result = XmlConvert.EncodeName( _a.Name );
+          result = XmlConvert.EncodeName( _attribute.Name );
         }
         else if( _state != State.AttrValue ) {
           result = _node.Name;
@@ -463,7 +477,7 @@ namespace SgmlReaderDll.Reader {
     public override string NamespaceURI {
       get {
         // SGML has no namespaces, unless this turned out to be an xmlns attribute.
-        if( _state == State.Attr && _a.Name.EqualsIgnoreCase( "xmlns" ) ) {
+        if( _state == State.Attr && _attribute.Name.EqualsIgnoreCase( "xmlns" ) ) {
           return "http://www.w3.org/2000/xmlns/";
         }
 
@@ -486,6 +500,7 @@ namespace SgmlReaderDll.Reader {
                   if( index < 0 ) continue;
 
                   var value = node.GetAttribute( index ).Value;
+                  
                   if( value != null ) {
                     return value;
                   }
@@ -563,7 +578,7 @@ namespace SgmlReaderDll.Reader {
     public override string Value {
       get {
         if( _state == State.Attr || _state == State.AttrValue ) {
-          return _a.Value;
+          return _attribute.Value;
         }
 
         return _node.Value;
@@ -620,7 +635,7 @@ namespace SgmlReaderDll.Reader {
     public override bool IsDefault {
       get {
         if( _state == State.Attr || _state == State.AttrValue )
-          return _a.IsDefault;
+          return _attribute.IsDefault;
 
         return false;
       }
@@ -635,7 +650,7 @@ namespace SgmlReaderDll.Reader {
     /// </remarks>
     public override char QuoteChar {
       get {
-        return _a != null ? _a.QuoteChar : '\0';
+        return _attribute != null ? _attribute.QuoteChar : '\0';
       }
     }
 
@@ -806,8 +821,8 @@ namespace SgmlReaderDll.Reader {
     public override void MoveToAttribute( int i ) {
       var a = _node.GetAttribute( i );
       if( a != null ) {
-        _apos = i;
-        _a = a;
+        _attributePos = i;
+        _attribute = a;
         if( _state != State.Attr ) {
           _node.CurrentState = _state; //save current state.
         }
@@ -845,8 +860,8 @@ namespace SgmlReaderDll.Reader {
         return MoveToFirstAttribute();
       }
 
-      if( _apos < _node.AttributeCount - 1 ) {
-        MoveToAttribute( _apos + 1 );
+      if( _attributePos < _node.AttributeCount - 1 ) {
+        MoveToAttribute( _attributePos + 1 );
         return true;
       }
 
@@ -865,7 +880,7 @@ namespace SgmlReaderDll.Reader {
         return ( _node.NodeType == XmlNodeType.Element );
 
       _state = _node.CurrentState;
-      _a = null;
+      _attribute = null;
 
       return true;
     }
@@ -970,11 +985,11 @@ namespace SgmlReaderDll.Reader {
             break;
           case State.AutoClose:
             Pop(); // close next node.
-            if( _stack.Count <= _poptodepth ) {
+            if( _stack.Count <= _popToDepth ) {
               _state = State.Markup;
-              if( _newnode != null ) {
-                Push( _newnode ); // now we're ready to start the new node.
-                _newnode = null;
+              if( _newNode != null ) {
+                Push( _newNode ); // now we're ready to start the new node.
+                _newNode = null;
                 _state = State.Markup;
               }
               else if( _node.NodeType == XmlNodeType.Document ) {
@@ -1011,11 +1026,12 @@ namespace SgmlReaderDll.Reader {
 
         if( foundnode || _state != State.Eof || _stack.Count <= 1 ) continue;
 
-        _poptodepth = 1;
+        _popToDepth = 1;
         _state = State.AutoClose;
         _node = Top();
         return true;
       }
+
       if( !_foundRoot && ( NodeType == XmlNodeType.Element || NodeType == XmlNodeType.Text || NodeType == XmlNodeType.CDATA ) ) {
         _foundRoot = true;
         if( IsHtml && ( NodeType != XmlNodeType.Element || !LocalName.EqualsIgnoreCase( "html" ) ) ) {
@@ -1264,26 +1280,27 @@ namespace SgmlReaderDll.Reader {
     }
 
     private bool ParseAspNet() {
-      string value = "<%" + _current.ScanToEnd( _sb, "AspNet", "%>" ) + "%>";
+      var value = "<%" + _current.ScanToEnd( _sb, "AspNet", "%>" ) + "%>";
       Push( null, XmlNodeType.CDATA, value );
       return true;
     }
 
     private bool ParseComment() {
-      char ch = _current.ReadChar();
+      var ch = _current.ReadChar();
       if( ch != '-' ) {
         Log( "Expecting comment '<!--' but found {0}", ch );
         _current.ScanToEnd( null, "Comment", ">" );
         return false;
       }
 
-      string value = _current.ScanToEnd( _sb, "Comment", "-->" );
+      var value = _current.ScanToEnd( _sb, "Comment", "-->" );
 
       // Make sure it's a valid comment!
-      int i = value.IndexOf( "--" );
+      var i = value.IndexOf( "--" );
 
       while( i >= 0 ) {
-        int j = i + 2;
+        var j = i + 2;
+
         while( j < value.Length && value[ j ] == '-' )
           j++;
 
@@ -1385,8 +1402,8 @@ namespace SgmlReaderDll.Reader {
         }
 
         _docType = name;
-        _pubid = pubid;
-        _syslit = syslit;
+        _publicIdentifier = pubid;
+        _systemLiteral = syslit;
         _subset = subset;
         LazyLoadDtd( _current.ResolvedUri );
       }
@@ -1937,9 +1954,9 @@ namespace SgmlReaderDll.Reader {
       }
 
       _state = State.AutoClose;
-      _newnode = node;
+      _newNode = node;
       Pop(); // save this new node until we pop the others
-      _poptodepth = i + 1;
+      _popToDepth = i + 1;
     }
   }
 }
